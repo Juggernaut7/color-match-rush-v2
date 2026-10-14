@@ -10,15 +10,21 @@ export default function TimerBar({ timeLeft, duration }: TimerBarProps) {
   const percentage = (timeLeft / duration) * 100
 
   return (
-    <div className="w-full bg-[#f2f2f2] h-2">
+    <div
+      className="h-2 w-full bg-slate-200"
+      role="progressbar"
+      aria-label="Time remaining"
+      aria-valuemin={0}
+      aria-valuemax={duration}
+      aria-valuenow={timeLeft}
+    >
       <motion.div
         animate={{ width: `${percentage}%` }}
-        transition={{ duration: 0.3, ease: "linear" }}
-        className={`h-full transition-colors ${
-          timeLeft > 10 ? "bg-[#35d07f]" : timeLeft > 5 ? "bg-[#fbcc5c]" : "bg-[#ff4d4d]"
+        transition={{ duration: 0.12, ease: "linear" }}
+        className={`h-full ${
+          timeLeft > 10 ? "bg-emerald-500" : timeLeft > 5 ? "bg-amber-500" : "bg-rose-500"
         }`}
       />
     </div>
   )
 }
-

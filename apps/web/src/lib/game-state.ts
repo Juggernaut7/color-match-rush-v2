@@ -1,7 +1,7 @@
-export type ColorOption = {
-  name: string
-  hex: string
-}
+import { COLOR_SET, generateQuestion } from "./game-questions.mjs"
+
+export { COLOR_SET, generateQuestion }
+export type { ColorOption, GameQuestion } from "./game-questions.mjs"
 
 export type GameResult = {
   score: number
@@ -11,36 +11,7 @@ export type GameResult = {
   player: string
 }
 
-export const COLOR_SET: ColorOption[] = [
-  { name: "RED", hex: "#FF4D4D" },
-  { name: "GREEN", hex: "#35D07F" },
-  { name: "BLUE", hex: "#3B82F6" },
-  { name: "YELLOW", hex: "#FACC15" },
-  { name: "ORANGE", hex: "#F97316" },
-  { name: "PURPLE", hex: "#8B5CF6" },
-  { name: "PINK", hex: "#EC4899" },
-  { name: "CYAN", hex: "#06B6D4" },
-]
-
-export type GameQuestion = {
-  wordName: string
-  wordColor: string
-  options: ColorOption[]
-}
-
 export const GAME_STORAGE_KEY = "color-match-rush-results-v1"
-
-export function generateQuestion(): GameQuestion {
-  const shuffled = [...COLOR_SET].sort(() => Math.random() - 0.5)
-  const word = shuffled[0]
-  const distractor = shuffled.find((color) => color.name !== word.name) ?? shuffled[1] ?? word
-
-  return {
-    wordName: word.name,
-    wordColor: distractor.hex,
-    options: [...COLOR_SET].sort(() => Math.random() - 0.5),
-  }
-}
 
 export function getStoredResults(): GameResult[] {
   if (typeof window === "undefined") {

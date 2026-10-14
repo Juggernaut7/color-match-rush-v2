@@ -5,9 +5,9 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Color Match Rush | Arc reaction game",
+  title: "Color Match Rush — Think fast. Match the word.",
   description:
-    "Play a free mobile-first Stroop reaction game with personal bests and an Arc Mainnet status check.",
+    "A free, fast color-word reaction game. No wallet, signup, or payment needed.",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

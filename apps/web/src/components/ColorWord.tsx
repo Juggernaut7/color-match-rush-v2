@@ -15,10 +15,9 @@ export default function ColorWord({ text, color }: ColorWordProps) {
       exit={{ scale: 0.8, opacity: 0 }}
       transition={{ duration: 0.2 }}
     >
-      <h2 style={{ color }} className="text-7xl font-black text-center select-none">
+      <h2 style={{ color }} className="select-none text-center text-7xl font-black leading-none tracking-tight sm:text-8xl">
         {text}
       </h2>
     </motion.div>
   )
 }
-

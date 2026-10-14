@@ -1,142 +1,154 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { AnimatePresence, motion } from "framer-motion"
 import ColorButtons from "@/components/ColorButtons"
 import ColorWord from "@/components/ColorWord"
 import TimerBar from "@/components/TimerBar"
-import { COLOR_SET, generateQuestion, saveResult, type GameQuestion } from "@/lib/game-state"
+import { COLOR_SET, generateQuestion, getBestScore, saveResult, type GameQuestion } from "@/lib/game-state"
+import { canAcceptAnswer, scoreAnswer, secondsRemaining } from "@/lib/game-engine.mjs"
 
 const ROUND_SECONDS = 30
+const ANSWER_FEEDBACK_MS = 180
+
+const INITIAL_QUESTION: GameQuestion = {
+  wordName: "RED",
+  wordColor: "#2563EB",
+  options: COLOR_SET,
+}
 
 export default function GamePage() {
   const router = useRouter()
-  const [question, setQuestion] = useState<GameQuestion>({
-    wordName: "RED",
-    wordColor: "#3B82F6",
-    options: COLOR_SET,
-  })
+  const [question, setQuestion] = useState<GameQuestion>(INITIAL_QUESTION)
   const [score, setScore] = useState(0)
   const [correct, setCorrect] = useState(0)
   const [mistakes, setMistakes] = useState(0)
   const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS)
   const [gameActive, setGameActive] = useState(true)
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null)
-  const [completed, setCompleted] = useState(false)
+  const deadlineRef = useRef<number | null>(null)
   const timerRef = useRef<number | null>(null)
+  const answerTimeoutRef = useRef<number | null>(null)
+  const hasAnsweredRef = useRef(false)
+  const finishedRef = useRef(false)
+  const statsRef = useRef({ score: 0, correct: 0, mistakes: 0 })
 
-  useEffect(() => {
-    setQuestion(generateQuestion())
-  }, [])
+  const finishRound = useCallback(() => {
+    if (finishedRef.current) return
+    finishedRef.current = true
+    hasAnsweredRef.current = true
 
-  useEffect(() => {
-    if (!gameActive) return
+    if (timerRef.current !== null) window.clearInterval(timerRef.current)
+    if (answerTimeoutRef.current !== null) window.clearTimeout(answerTimeoutRef.current)
+    setGameActive(false)
+    setTimeLeft(0)
 
-    timerRef.current = window.setInterval(() => {
-      setTimeLeft((previous) => {
-        if (previous <= 1) {
-          setGameActive(false)
-          return 0
-        }
-        return previous - 1
-      })
-    }, 1000)
-
-    return () => {
-      if (timerRef.current) window.clearInterval(timerRef.current)
-    }
-  }, [gameActive])
-
-  useEffect(() => {
-    if (gameActive || timeLeft !== 0 || completed) return
-    setCompleted(true)
-
+    const finalStats = statsRef.current
+    const previousBest = getBestScore()
     saveResult({
-      score,
-      correct,
-      mistakes,
+      ...finalStats,
       playedAt: new Date().toISOString(),
       player: "Guest",
     })
 
     const params = new URLSearchParams({
-      score: String(score),
-      correct: String(correct),
-      mistakes: String(mistakes),
+      ...Object.fromEntries(Object.entries(finalStats).map(([key, value]) => [key, String(value)])),
+      bestScore: String(getBestScore()),
+      newBest: String(finalStats.score > previousBest),
       submissionId: window.crypto.randomUUID(),
     })
-    router.push(`/result?${params.toString()}`)
-  }, [gameActive, timeLeft, completed, score, correct, mistakes, router])
+    router.replace(`/result?${params.toString()}`)
+  }, [router])
 
-  const handleAnswer = (selectedColorName: string) => {
-    if (!gameActive) return
+  useEffect(() => {
+    deadlineRef.current = Date.now() + ROUND_SECONDS * 1000
+    setQuestion(generateQuestion())
 
-    const isCorrect = selectedColorName === question.wordName
-    if (isCorrect) {
-      setScore((previous) => previous + 1)
-      setCorrect((previous) => previous + 1)
-      setFeedback("correct")
-    } else {
-      setScore((previous) => Math.max(0, previous - 1))
-      setMistakes((previous) => previous + 1)
-      setFeedback("wrong")
+    const updateClock = () => {
+      if (deadlineRef.current === null || finishedRef.current) return
+      const remaining = secondsRemaining(deadlineRef.current, Date.now())
+      setTimeLeft((current) => (current === remaining ? current : remaining))
+      if (remaining === 0) finishRound()
     }
 
-    window.setTimeout(() => {
+    updateClock()
+    timerRef.current = window.setInterval(updateClock, 250)
+
+    return () => {
+      if (timerRef.current !== null) window.clearInterval(timerRef.current)
+      if (answerTimeoutRef.current !== null) window.clearTimeout(answerTimeoutRef.current)
+    }
+  }, [finishRound])
+
+  const handleAnswer = (selectedColorName: string) => {
+    const now = Date.now()
+    if (
+      deadlineRef.current === null ||
+      !canAcceptAnswer({
+        deadline: deadlineRef.current,
+        now,
+        alreadyAnswered: hasAnsweredRef.current,
+        finished: finishedRef.current,
+      })
+    ) {
+      if (!finishedRef.current && deadlineRef.current !== null && now >= deadlineRef.current) finishRound()
+      return
+    }
+
+    hasAnsweredRef.current = true
+    const isCorrect = selectedColorName === question.wordName
+    const nextStats = scoreAnswer(statsRef.current, isCorrect)
+    statsRef.current = nextStats
+    setScore(nextStats.score)
+    setCorrect(nextStats.correct)
+    setMistakes(nextStats.mistakes)
+    setFeedback(isCorrect ? "correct" : "wrong")
+
+    answerTimeoutRef.current = window.setTimeout(() => {
+      if (finishedRef.current) return
       setQuestion(generateQuestion())
       setFeedback(null)
-    }, 220)
+      hasAnsweredRef.current = false
+    }, ANSWER_FEEDBACK_MS)
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.25),_transparent_35%),linear-gradient(180deg,#f5f8ff_0%,#ffffff_100%)] text-slate-900">
-      <TimerBar timeLeft={timeLeft} duration={ROUND_SECONDS} />
+    <main className="min-h-screen bg-[#f7f6f1] px-4 pb-8 pt-4 text-slate-950 sm:px-8 sm:pt-8">
+      <div className="mx-auto flex min-h-[calc(100svh-3rem)] w-full max-w-2xl flex-col">
+        <TimerBar timeLeft={timeLeft} duration={ROUND_SECONDS} />
 
-      <div className="mx-auto flex max-w-5xl flex-col items-center justify-center px-4 pb-24 pt-12">
-        <div className="mb-6 flex w-full max-w-xl items-center justify-between rounded-full border border-blue-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-sm">
-          <div className="text-sm font-medium uppercase tracking-[0.2em] text-blue-600">Round</div>
-          <motion.div key={score} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-2xl font-black text-slate-900">
-            {score}
-          </motion.div>
-        </div>
+        <header className="flex items-center justify-between py-5">
+          <Link href="/" className="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-white" aria-label="Leave round and return home">
+            ← <span className="hidden sm:inline">Leave round</span><span className="sm:hidden">Exit</span>
+          </Link>
+          <p className="text-sm font-extrabold uppercase tracking-[0.16em] text-slate-500">Color Match Rush</p>
+          <div className="min-w-20 rounded-xl bg-white px-3 py-2 text-right shadow-sm">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Score</span>
+            <span className="ml-2 text-xl font-black tabular-nums text-slate-950" aria-live="polite">{score}</span>
+          </div>
+        </header>
 
-        <div className="mb-6 flex w-full max-w-xl items-center justify-between gap-3 text-sm font-medium text-slate-600">
-          <span>Correct: {correct}</span>
-          <span>Errors: {mistakes}</span>
-          <span>{timeLeft}s left</span>
-        </div>
+        <section className="flex flex-1 flex-col items-center justify-center pb-6">
+          <div className="mb-8 flex w-full max-w-md items-center justify-between">
+            <p className="text-sm font-bold text-slate-500">MATCH THE WORD</p>
+            <p className={`rounded-full px-4 py-2 text-lg font-black tabular-nums ${timeLeft <= 5 ? "bg-rose-100 text-rose-700" : "bg-white text-slate-900"}`} aria-live="off">
+              {timeLeft}<span className="ml-1 text-xs font-bold">SEC</span>
+            </p>
+          </div>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`${question.wordName}-${question.wordColor}`}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.2 }}
-            className="mb-8 flex min-h-[180px] items-center justify-center"
-          >
+          <div className="mb-5 flex min-h-36 w-full items-center justify-center rounded-[2rem] bg-white px-4 py-8 shadow-[0_16px_48px_rgba(15,23,42,0.07)] sm:min-h-48">
             <ColorWord text={question.wordName} color={question.wordColor} />
-          </motion.div>
-        </AnimatePresence>
+          </div>
+          <p className="mb-5 min-h-6 text-center text-sm font-extrabold uppercase tracking-[0.18em]" aria-live="polite">
+            {feedback === "correct" ? <span className="text-emerald-700">Nice! +1</span> : feedback === "wrong" ? <span className="text-rose-700">Not quite · −1</span> : <span className="text-slate-500">Choose the color named above</span>}
+          </p>
 
-        {feedback && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }}
-            className={`mb-4 rounded-full px-4 py-2 text-sm font-bold uppercase tracking-[0.18em] ${
-              feedback === "correct" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
-            }`}
-          >
-            {feedback === "correct" ? "Correct" : "Wrong"}
-          </motion.div>
-        )}
-
-        <div className="w-full max-w-xl">
-          <ColorButtons options={question.options} onSelect={handleAnswer} disabled={!gameActive} />
-        </div>
+          <div className="w-full max-w-md">
+            <ColorButtons options={question.options} onSelect={handleAnswer} disabled={!gameActive || feedback !== null} />
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   )
 }

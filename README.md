@@ -1,20 +1,30 @@
 # Color Match Rush
 
-Color Match Rush is a mobile-first Stroop reaction game. Play a free 30-second round without a wallet. The timer, challenge generation, result screen, and personal-best history run in the browser. Scores can also be saved to a serverless MongoDB leaderboard as anonymous, self-reported results.
+Think fast. Match the word. **Color Match Rush** is a free, mobile-first color-word reaction game: read the color name, ignore its ink, and pick the matching answer before the 30-second clock runs out. No wallet, account, payment, or backend connection is needed to play.
 
-The app has a read-only Arc Mainnet status check. Through the official RPC, it verifies chain ID `5042` and that bytecode exists at the configured legacy treasury address. It does not call contract methods or confirm that arbitrary bytecode matches source code. The game does not connect wallets, accept entry payments, store scores on-chain, or distribute prizes.
+- **Play:** open the app, tap **Play Free**, and answer using one of eight large color buttons.
+- **Scoring:** correct answers add one point; wrong answers subtract one, down to zero.
+- **Results:** after 30 seconds, see your score and personal best, then play again.
+- **Personal bests:** saved on the current device. An optional shared leaderboard stores anonymous, player-submitted scores in MongoDB; results are not independently verified.
+- **Public source:** [github.com/Juggernaut7/color-match-rush-v2](https://github.com/Juggernaut7/color-match-rush-v2)
+
+No live production app URL has been verified yet.
+
+The existing Arc Mainnet treasury is a separate legacy deployment. This game does not connect wallets, accept entry payments, write scores on-chain, or distribute prizes. Read-only Arc checks are available through the server API for diagnostic use; they are not part of the play flow.
 
 ## Run locally
 
 Requirements: Node.js 18+ and pnpm 8+.
 
 ```powershell
-Copy-Item apps\web\.env.example apps\web\.env.local
+if (-not (Test-Path apps\web\.env.local)) {
+  Copy-Item apps\web\.env.example apps\web\.env.local
+}
 pnpm install
 pnpm --filter web dev
 ```
 
-Open http://localhost:3000. Free practice and local score history work without environment variables or a network connection.
+Open http://localhost:3000 and tap **Play Free**. The complete game loop and device history work without environment variables, a wallet, or network access.
 
 Configure these variables in `apps/web/.env.local` for local backend and Arc status features, and in the Vercel project's **server-side Production Environment Variables** before deploying:
 
@@ -48,6 +58,7 @@ Network details: [Circle Arc connection guide](https://docs.arc.io/arc/reference
 pnpm --filter web type-check
 pnpm --filter web build
 pnpm --filter web lint
+pnpm --filter web test:game
 pnpm --filter hardhat exec hardhat test
 ```
 

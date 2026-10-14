@@ -41,8 +41,8 @@ export default function HowToPlayPage() {
             <p className="mt-3 text-slate-700">The correct response is <span className="font-black text-blue-700">BLUE</span> because the prompt is the word, not the displayed ink.</p>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-relaxed text-amber-900">
-            Practice is free and requires no wallet. Your score is saved locally and may also be submitted to the shared leaderboard as an anonymous, self-reported result; it is not independently verified or stored on Arc. The app&apos;s Arc integration is read-only, and this app has no payment or prize-payout flow. The legacy on-chain contract may still accept direct payment calls while its round is open; do not send funds to it.
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm leading-relaxed text-slate-700">
+            Practice is free and needs no account. Your score is saved on this device and may also appear on the shared leaderboard. Online scores are player-submitted and are not independently verified.
           </div>
 
           <button

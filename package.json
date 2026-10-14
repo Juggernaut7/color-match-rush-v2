@@ -1,7 +1,7 @@
 {
   "name": "color-match-rush",
   "version": "0.1.0",
-  "description": "A mobile-first Stroop reaction game with optional Arc Mainnet native-USDC competitions.",
+  "description": "A free mobile-first color-word reaction game with optional anonymous score history.",
   "private": true,
   "scripts": {
     "build": "turbo build",

@@ -1,7 +1,7 @@
 {
   "name": "Color Match Rush",
   "short_name": "ColorMatch",
-  "description": "A fast-paced color-matching reaction puzzle game built for the Celo MiniPay Hackathon. Compete in 12-hour rounds and win prizes!",
+  "description": "A free, mobile-first color-word reaction game. Beat the 30-second clock without a wallet or payment.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFFFFF",
@@ -40,5 +40,4 @@
     }
   ]
 }
-
 

@@ -1,15 +1,19 @@
 "use client"
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
+import { Suspense, useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { motion } from "framer-motion"
-import BottomNav from "@/components/BottomNav"
+import Link from "next/link"
 import { getBestScore, getStoredResults } from "@/lib/game-state"
 import { getAnonymousPlayerId, submitScore } from "@/lib/score-api"
 
+function readCount(value: string | null) {
+  const parsed = Number(value)
+  return Number.isSafeInteger(parsed) ? Math.max(0, parsed) : 0
+}
+
 export default function ResultPage() {
   return (
-    <Suspense fallback={<ResultPageFallback />}>
+    <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-[#f7f6f1] text-slate-600">Loading your score…</main>}>
       <ResultPageContent />
     </Suspense>
   )
@@ -18,16 +22,19 @@ export default function ResultPage() {
 function ResultPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const score = Number(searchParams.get("score") || 0)
-  const correct = Number(searchParams.get("correct") || 0)
-  const mistakes = Number(searchParams.get("mistakes") || 0)
+  const score = readCount(searchParams.get("score"))
+  const correct = readCount(searchParams.get("correct"))
+  const mistakes = readCount(searchParams.get("mistakes"))
   const submissionId = searchParams.get("submissionId")
-  const [bestScore, setBestScore] = useState(0)
+  const [bestScore, setBestScore] = useState(readCount(searchParams.get("bestScore")))
+  const [totalGames, setTotalGames] = useState(0)
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
   const [saveError, setSaveError] = useState("")
+  const newBest = searchParams.get("newBest") === "true"
 
   useEffect(() => {
-    setBestScore(getBestScore())
+    setBestScore((current) => Math.max(current, getBestScore()))
+    setTotalGames(getStoredResults().length)
   }, [])
 
   const saveToCloud = useCallback(async () => {
@@ -45,7 +52,7 @@ function ResultPageContent() {
       setBestScore((current) => Math.max(current, savedBestScore))
       setSaveStatus("saved")
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "Could not save this score online.")
+      setSaveError(error instanceof Error ? error.message : "Online score sync is unavailable.")
       setSaveStatus("error")
     }
   }, [correct, mistakes, score, submissionId])
@@ -54,93 +61,75 @@ function ResultPageContent() {
     void saveToCloud()
   }, [saveToCloud])
 
-  const accuracy = useMemo(() => {
-    const attempts = correct + mistakes
-    if (!attempts) return 0
-    return Math.round((correct / attempts) * 100)
-  }, [correct, mistakes])
-
-  const totalGames = getStoredResults().length
+  const attempts = correct + mistakes
+  const accuracy = attempts ? Math.round((correct / attempts) * 100) : 0
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.22),_transparent_35%),linear-gradient(180deg,#f5f8ff_0%,#ffffff_100%)] text-slate-900">
-      <div className="mx-auto flex max-w-3xl flex-col items-center justify-center px-4 pb-28 pt-20">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="mb-8 rounded-full bg-blue-600 p-6 text-5xl shadow-xl shadow-blue-200">
-          {score >= 15 ? "🎉" : score >= 8 ? "👏" : "⚡"}
-        </motion.div>
+    <main className="flex min-h-screen flex-col items-center justify-center bg-[#f7f6f1] px-5 pb-10 pt-8 text-slate-950 sm:px-8">
+      <div className="w-full max-w-xl">
+        <Link href="/" className="text-sm font-bold text-slate-500 hover:text-blue-700">← Home</Link>
 
-        <h1 className="text-4xl font-black text-slate-900 md:text-5xl">{score} points</h1>
-        <p className="mt-3 text-lg text-slate-600">
-          {score >= 15 ? "Outstanding reaction speed." : score >= 8 ? "Strong focus." : "Great effort — round one is always the toughest."}
-        </p>
-        {submissionId && (
-          <div className="mt-5 w-full max-w-xl rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900" aria-live="polite">
-            {saveStatus === "saving" && "Saving this self-reported score to your anonymous online history..."}
-            {saveStatus === "saved" && "Score saved to your anonymous online history. Scores are self-reported and not verified."}
-            {saveStatus === "error" && (
-              <>
-                <p>{saveError} Your local result remains available on this device.</p>
-                <button type="button" onClick={() => void saveToCloud()} className="mt-2 font-bold underline">
-                  Retry online save
-                </button>
-              </>
-            )}
-          </div>
-        )}
+        <section className="mt-8 rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-10">
+          <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-blue-700">Round complete</p>
+          <h1 className="mt-3 text-6xl font-black tracking-tight sm:text-7xl">{score}<span className="ml-3 text-2xl text-slate-400 sm:text-3xl"> pts</span></h1>
+          <p className="mt-3 text-lg text-slate-600">
+            {newBest ? "New personal best. Look at you go!" : score >= 10 ? "Quick thinking. Fancy another round?" : "Good warm-up. You can beat that next round."}
+          </p>
 
-        <div className="mt-8 grid w-full max-w-xl gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
-            <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Correct</p>
-            <p className="mt-3 text-3xl font-black text-blue-600">{correct}</p>
+          <div className="mt-8 grid grid-cols-3 divide-x divide-slate-200 rounded-2xl bg-[#f7f6f1] py-4">
+            <div className="text-center">
+              <p className="text-2xl font-black">{correct}</p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-500">Right</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-black">{mistakes}</p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-500">Missed</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-black">{accuracy}%</p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-500">Accuracy</p>
+            </div>
           </div>
-          <div className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
-            <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Mistakes</p>
-            <p className="mt-3 text-3xl font-black text-slate-900">{mistakes}</p>
-          </div>
-          <div className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
-            <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Accuracy</p>
-            <p className="mt-3 text-3xl font-black text-emerald-600">{accuracy}%</p>
-          </div>
-        </div>
 
-        <div className="mt-8 w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between text-sm text-slate-600">
-            <span>Device best</span>
-            <span className="text-xl font-black text-slate-900">{bestScore}</span>
+          <div className="mt-5 flex items-center justify-between rounded-2xl border border-slate-200 px-5 py-4">
+            <span className="font-bold text-slate-600">Personal best</span>
+            <span className="text-2xl font-black">{bestScore}</span>
           </div>
-          <div className="mt-3 flex items-center justify-between text-sm text-slate-600">
-            <span>Games saved</span>
-            <span className="text-xl font-black text-slate-900">{totalGames}</span>
-          </div>
-        </div>
 
-        <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:flex-row">
-          <button
-            type="button"
-            onClick={() => router.push("/game")}
-            className="flex-1 rounded-2xl bg-blue-600 px-5 py-4 text-base font-bold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-500"
-          >
-            Play again
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push("/leaderboard")}
-            className="flex-1 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-base font-bold text-slate-700 transition hover:border-blue-200 hover:text-blue-600"
-          >
-            Leaderboard
-          </button>
-        </div>
+          {submissionId && (
+            <div className="mt-5 text-sm text-slate-600" aria-live="polite">
+              {saveStatus === "saving" && "Saving your score online…"}
+              {saveStatus === "saved" && "Score synced. Online scores are player-submitted and unverified."}
+              {saveStatus === "error" && (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p>{saveError} Your score is safe on this device.</p>
+                  <button type="button" onClick={() => void saveToCloud()} className="font-bold text-blue-700 underline underline-offset-2">
+                    Retry sync
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          <p className="mt-5 text-sm text-slate-500">{totalGames} {totalGames === 1 ? "round" : "rounds"} saved on this device</p>
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => router.push("/game")}
+              className="min-h-14 flex-1 rounded-2xl bg-blue-700 px-6 py-4 text-lg font-extrabold text-white transition hover:bg-blue-800 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+            >
+              Play Again
+            </button>
+            <Link href="/" className="inline-flex min-h-14 flex-1 items-center justify-center rounded-2xl border-2 border-slate-200 px-6 py-4 text-center font-bold text-slate-700 transition hover:bg-slate-50">
+              Home
+            </Link>
+          </div>
+          <Link href="/leaderboard" className="mt-5 block text-center text-sm font-bold text-slate-600 underline decoration-slate-300 underline-offset-4 hover:text-blue-700">
+            See leaderboard
+          </Link>
+        </section>
       </div>
-
-      <BottomNav active="play" />
-    </div>
-  )
-}
-
-function ResultPageFallback() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-500">
-      Loading results...
-    </div>
+    </main>
   )
 }
