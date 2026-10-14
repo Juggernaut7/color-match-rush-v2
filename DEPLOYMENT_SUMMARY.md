@@ -23,4 +23,6 @@ The contract is a legacy deployment, not the scoring system for this free-play M
 
 ## Verification caveat
 
+On 2026-10-14, the official Arc RPC again returned chain ID `5042`, non-empty bytecode at the treasury, and a successful receipt for the deployment transaction above. The configured local contract deployer matches both the transaction sender and the treasury's current on-chain owner. The existing deployment is therefore the target; no duplicate deployment transaction was sent. The local contract `.env` now points `TREASURY_ADDRESS` at this verified deployment, and remains Git-ignored.
+
 An independent read previously confirmed Arc RPC chain ID `5042`, non-empty bytecode at the address, and `entryFee()` returning `0.5` native USDC. The app no longer calls `entryFee()` at runtime because this MVP has no paid-entry flow; its status route checks only chain ID and bytecode presence, not source/ABI identity. The earlier `TimeoutError` indicates a transient RPC request timeout, but its precise upstream cause was not established. The current app routes Arc checks through a server-side API with retry, timeout, and explicit error states. A live Vercel deployment and browser verification must be recorded only after actually completing them.
