@@ -26,6 +26,8 @@ pnpm --filter web dev
 
 Open http://localhost:3000 and tap **Play Free**. The complete game loop and device history work without environment variables, a wallet, or network access.
 
+Vercel installs the workspace with the repository-pinned pnpm 8.10.0 command in [`vercel.json`](./vercel.json), so its default pnpm version cannot silently fall back to an incompatible pnpm 6 release.
+
 Configure these variables in `apps/web/.env.local` for local features and in the Vercel project before deploying. Add the two Arc address variables as plain environment variables (the address is public), and add `MONGODB_URI` only to server-side Production Environment Variables:
 
 ```dotenv

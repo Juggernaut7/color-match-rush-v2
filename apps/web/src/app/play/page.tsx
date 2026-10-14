@@ -8,8 +8,8 @@ export default function PlayPage() {
   const router = useRouter()
 
   return (
-    <main className="flex min-h-screen flex-col bg-[#f7f6f1] px-5 py-8 text-slate-950 sm:items-center sm:justify-center sm:px-8">
-      <div className="w-full max-w-xl rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-10">
+    <main className="h-screen h-[100dvh] overflow-y-auto overscroll-y-contain bg-[#f7f6f1] px-5 py-8 text-slate-950 sm:flex sm:flex-col sm:items-center sm:justify-center sm:px-8">
+      <div className="w-full max-w-xl shrink-0 rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-10">
         <Link href="/" className="text-sm font-bold text-slate-500 hover:text-blue-700">← Back</Link>
         <p className="mt-10 text-sm font-extrabold uppercase tracking-[0.2em] text-blue-700">Ready, player?</p>
         <h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Beat the 30-second clock.</h1>
