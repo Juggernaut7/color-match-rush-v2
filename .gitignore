@@ -4,6 +4,7 @@ node_modules/
 
 # Production builds
 .next/
+apps/web/.next-*/
 dist/
 build/
 

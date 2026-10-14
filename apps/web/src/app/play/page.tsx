@@ -3,8 +3,7 @@
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import BottomNav from "@/components/BottomNav"
-import WalletButton from "@/components/WalletButton"
-import CompetitiveEntry from "@/components/CompetitiveEntry"
+import ArcStatus from "@/components/ArcStatus"
 import { getBestScore } from "@/lib/game-state"
 
 export default function PlayPage() {
@@ -13,20 +12,18 @@ export default function PlayPage() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.22),_transparent_35%),linear-gradient(180deg,#f5f8ff_0%,#ffffff_100%)] text-slate-900">
-      <WalletButton />
-
       <div className="mx-auto flex max-w-5xl flex-col items-center justify-center px-4 pb-28 pt-20">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-2xl rounded-[2rem] border border-blue-100 bg-white/80 p-6 shadow-[0_25px_70px_rgba(37,99,235,0.08)] backdrop-blur-sm md:p-8">
           <div className="mb-6 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">Free play + Arc competition</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">Free play · Arc read-only</p>
               <h1 className="mt-2 text-4xl font-black text-slate-900">Free-to-play challenge</h1>
             </div>
             <div className="rounded-full bg-blue-600 px-3 py-2 text-sm font-bold text-white shadow-lg shadow-blue-200">30s</div>
           </div>
 
           <p className="mb-8 text-lg text-slate-600">
-            Match the color name to the correct answer before the timer ends. Free practice needs no wallet or fee; joining the optional Arc competition is a separate on-chain transaction.
+            Match the color name to the correct answer before the timer ends. Play and save your personal best without a wallet or payment.
           </p>
 
           <div className="grid gap-4 md:grid-cols-3">
@@ -64,7 +61,7 @@ export default function PlayPage() {
             </button>
           </div>
 
-          <CompetitiveEntry />
+          <ArcStatus />
 
           <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
             Best local score: {bestScore}

@@ -3,15 +3,12 @@
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import BottomNav from "@/components/BottomNav"
-import WalletButton from "@/components/WalletButton"
 
 export default function HowToPlayPage() {
   const router = useRouter()
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.22),_transparent_35%),linear-gradient(180deg,#f5f8ff_0%,#ffffff_100%)] text-slate-900">
-      <WalletButton />
-
       <div className="mx-auto max-w-4xl px-4 pb-28 pt-20">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-blue-100 bg-white/80 p-6 shadow-[0_25px_70px_rgba(37,99,235,0.08)] backdrop-blur-sm md:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">How to play</p>
@@ -45,7 +42,7 @@ export default function HowToPlayPage() {
           </div>
 
           <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-relaxed text-amber-900">
-            Competitive rounds are optional and require an Arc Mainnet wallet and native USDC. Game scores and input sequences remain off-chain and are not trusted for payout decisions; the round operator selects three entrants, and the contract enforces entry eligibility, one-time settlement, payout shares, and refunds after cancellation. Free practice does not require a wallet or payment.
+            Practice is free and requires no wallet. Your score is saved locally and may also be submitted to the shared leaderboard as an anonymous, self-reported result; it is not independently verified or stored on Arc. The app&apos;s Arc integration is read-only, and this app has no payment or prize-payout flow. The legacy on-chain contract may still accept direct payment calls while its round is open; do not send funds to it.
           </div>
 
           <button

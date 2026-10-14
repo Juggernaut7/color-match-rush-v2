@@ -11,7 +11,6 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { ConnectButton } from "@/components/connect-button"
 
 const navLinks = [
   { name: "Home", href: "/" },
@@ -55,9 +54,6 @@ export function Navbar() {
                     {link.external && <ExternalLink className="h-4 w-4" />}
                   </Link>
                 ))}
-                <div className="mt-6 pt-6 border-t">
-                  <ConnectButton />
-                </div>
               </nav>
             </SheetContent>
           </Sheet>
@@ -90,9 +86,6 @@ export function Navbar() {
             </Link>
           ))}
           
-          <div className="flex items-center gap-3">
-            <ConnectButton />
-          </div>
         </nav>
       </div>
     </header>

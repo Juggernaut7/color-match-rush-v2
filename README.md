@@ -1,49 +1,54 @@
 # Color Match Rush
 
-Color Match Rush is a mobile-first Stroop reaction game. Free practice, timer, challenge generation, and personal-best history run entirely in the browser. Optional Arc Mainnet competition entries, participant records, pools, cancellations/refunds, and finalized prize results are read from and written directly to the Arc contract.
+Color Match Rush is a mobile-first Stroop reaction game. Play a free 30-second round without a wallet. The timer, challenge generation, result screen, and personal-best history run in the browser. Scores can also be saved to a serverless MongoDB leaderboard as anonymous, self-reported results.
 
-## Features
+The app has a read-only Arc Mainnet status check. Through the official RPC, it verifies chain ID `5042` and that bytecode exists at the configured legacy treasury address. It does not call contract methods or confirm that arbitrary bytecode matches source code. The game does not connect wallets, accept entry payments, store scores on-chain, or distribute prizes.
 
-- Free 30-second practice with local personal-best and score history; no wallet or backend required.
-- Optional Arc Mainnet competition entry paid as native USDC (`msg.value`). Arc's native USDC has 18 decimals and is also the gas asset.
-- On-chain numbered rounds and enumerable participant pages (maximum 50 addresses per read).
-- On-chain settlement results with unique winning entrants and exact 50% / 30% / 20% pool distribution.
-- Participant-claimed refunds when an operator cancels a round with fewer than three entrants.
+## Run locally
 
-## Local setup
-
-1. Install Node.js 18+ and pnpm 8+.
-2. Copy `apps/web/.env.example` to `apps/web/.env.local`; it contains the deployed Arc Mainnet treasury address.
-3. For Vercel, add `NEXT_PUBLIC_ARC_TREASURY_ADDRESS=0xCde9Ada39F44a5d1C929D7f51Bfd7205B6aD6834` to the production environment. Do not add the deployer private key to the web project.
-4. From the repository root, run `pnpm install`, then `pnpm --filter web dev`.
-5. Open http://localhost:3000.
-
-The browser wallet targets Arc Mainnet (Chain ID 5042, `https://rpc.mainnet.arc.io`, explorer `https://explorer.arc.io`). Network details are from [Circle's official Arc connection guide](https://docs.arc.io/arc/references/connect-to-arc.md).
-
-## Contract setup and tests
+Requirements: Node.js 18+ and pnpm 8+.
 
 ```powershell
-cd apps\contracts
-Copy-Item .env.example .env
-npm install
-npm test
-npm run compile
+Copy-Item apps\web\.env.example apps\web\.env.local
+pnpm install
+pnpm --filter web dev
 ```
 
-Required deployer secret: `PRIVATE_KEY` in `apps/contracts/.env`. Optional values are `ARC_RPC_URL` (official mainnet RPC), `ARC_TESTNET_RPC_URL`, and `ARC_ENTRY_FEE` (native USDC in human units; defaults to `0.5`). Do not use the fee token's ERC-20 6-decimal interface for `msg.value`.
+Open http://localhost:3000. Free practice and local score history work without environment variables or a network connection.
 
-The current treasury is deployed on Arc Mainnet at [`0xCde9Ada39F44a5d1C929D7f51Bfd7205B6aD6834`](https://explorer.arc.io/address/0xCde9Ada39F44a5d1C929D7f51Bfd7205B6aD6834). Its first 24-hour round is round #1 with a 0.5 native-USDC entry fee. Round-management commands submit Mainnet transactions; inspect the live round before creating another.
+Configure these variables in `apps/web/.env.local` for local backend and Arc status features, and in the Vercel project's **server-side Production Environment Variables** before deploying:
 
-To create a round after deployment, set `TREASURY_ADDRESS` and `ROUND_ACTION=create`; `ROUND_DURATION_SECONDS` defaults to 86400. After the round ends, an operator can set `ROUND_ACTION=settle`, `ROUND_ID`, and three winner addresses. If fewer than three players entered, set `ROUND_ACTION=cancel`; each entrant can then claim a refund. See [apps/contracts/README.md](apps/contracts/README.md) for the complete workflow.
+```dotenv
+MONGODB_URI=mongodb+srv://<db-user>:<db-password>@<cluster-host>/<database>?retryWrites=true&w=majority
+ARC_TREASURY_ADDRESS=0xCde9Ada39F44a5d1C929D7f51Bfd7205B6aD6834
+```
 
-## Scoring trust model
+`MONGODB_URI` is secret: never use a `NEXT_PUBLIC_` prefix, add it to client code, or commit it. It is optional for local play; score submissions and the shared leaderboard show an error and fall back to local records if the database is missing or unavailable. `ARC_TREASURY_ADDRESS` is the public contract address but is read only by the server-side Arc status route. Do not put a deployer private key in the web project's environment.
 
-Gameplay inputs and scores are not submitted to a server or stored on-chain. They are client-generated and can be manipulated, so the app does not present them as verified competition rankings. The operator chooses three entrants after the round ends; the contract restricts settlement to that operator and enforces that winners are distinct round participants, settlement happens once, and prize shares total the pool. The leaderboard displays only contract-finalized winners and payouts. This is an operator-trusted proof of concept, not trustless score adjudication.
+## Persistence and score trust
 
-## Arc native USDC model
+- `POST /api/scores` validates bounded integer scores, anonymous UUIDs, and idempotent submission IDs; submissions are rate-limited per server instance.
+- `GET /api/scores?playerId=<anonymous UUID>` returns that browser's latest saved history and personal best.
+- `GET /api/leaderboard` returns the top 25 community submissions.
+- MongoDB indexes support idempotency, personal history, and ranked reads. The Mongo client is reused across serverless invocations when the runtime permits.
+- The browser saves results locally before attempting a cloud submission. A database outage does not block play or erase local history.
+- Scores are client-submitted and can be fabricated. They are not independently verified and must not be treated as proof of performance or eligibility for prizes.
 
-Arc uses native USDC for gas and native value transfers. The contract entry path is payable and sends `msg.value`, using 18-decimal native units. Arc also exposes an optional ERC-20 USDC interface at `0x3600000000000000000000000000000000000000` with 6 decimals; this app does not use that interface for entries. See Circle's [official EVM differences](https://docs.arc.io/arc/references/evm-differences.md) and [USDC contract-address reference](https://docs.arc.io/arc/references/contract-addresses.md).
+## Arc Mainnet integration
 
-## Risks
+The status panel makes read-only requests through a same-origin server route to the official Arc Mainnet RPC (`https://rpc.mainnet.arc.io`). It reports success only after RPC confirms chain ID `5042` and non-empty bytecode at the configured address. It does not call the legacy paid-entry getter or prove that the bytecode matches the repository source. Transient RPC failures show an error and a retry action; they do not disable free gameplay.
 
-This contract and app are experimental and unaudited. The operator can choose winners but cannot prove scores; operator key loss, mistakes, contract bugs, wallet mistakes, or network failures may lead to loss. A cancellation is permitted only after the round ends and with fewer than three entrants; eligible participants must claim their refunds individually.
+The verified legacy treasury is [`0xCde9Ada39F44a5d1C929D7f51Bfd7205B6aD6834`](https://explorer.arc.io/address/0xCde9Ada39F44a5d1C929D7f51Bfd7205B6aD6834). It was originally deployed with a payable entry method and an open round. This version of the website removes all wallet and payment controls and never calls those methods. **The legacy contract itself remains on-chain and may still accept direct contract calls while its round is open; do not send funds to it.** Arc uses native USDC as gas/value (18 decimals); this app does not use the separate 6-decimal ERC-20 interface.
+
+Network details: [Circle Arc connection guide](https://docs.arc.io/arc/references/connect-to-arc.md).
+
+## Checks
+
+```powershell
+pnpm --filter web type-check
+pnpm --filter web build
+pnpm --filter web lint
+pnpm --filter hardhat exec hardhat test
+```
+
+Contract sources/tests remain for the already-deployed legacy treasury; this game MVP does not use its payment or payout features. See [DEPLOYMENT_SUMMARY.md](./DEPLOYMENT_SUMMARY.md) for verified deployment details and current known limitations.

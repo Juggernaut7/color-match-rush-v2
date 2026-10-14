@@ -6,15 +6,9 @@ import { AnimatePresence, motion } from "framer-motion"
 import ColorButtons from "@/components/ColorButtons"
 import ColorWord from "@/components/ColorWord"
 import TimerBar from "@/components/TimerBar"
-import WalletButton from "@/components/WalletButton"
 import { COLOR_SET, generateQuestion, saveResult, type GameQuestion } from "@/lib/game-state"
 
 const ROUND_SECONDS = 30
-
-type PaidEntry = {
-  address: string
-  roundId: string
-}
 
 export default function GamePage() {
   const router = useRouter()
@@ -58,33 +52,20 @@ export default function GamePage() {
     if (gameActive || timeLeft !== 0 || completed) return
     setCompleted(true)
 
-    const paidEntry = sessionStorage.getItem("arc-paid-entry")
-    let entry: PaidEntry | null = null
-    if (paidEntry) {
-      try {
-        entry = JSON.parse(paidEntry) as PaidEntry
-      } catch (error) {
-        console.error("Unable to read the saved Arc entry:", error)
-      }
-    }
-
     saveResult({
       score,
       correct,
       mistakes,
       playedAt: new Date().toISOString(),
-      player: entry?.address
-        ? `${entry.address.slice(0, 6)}...${entry.address.slice(-4)}`
-        : "Guest",
+      player: "Guest",
     })
 
     const params = new URLSearchParams({
       score: String(score),
       correct: String(correct),
       mistakes: String(mistakes),
-      ...(entry ? { competition: "entered", roundId: entry.roundId } : {}),
+      submissionId: window.crypto.randomUUID(),
     })
-    if (entry) sessionStorage.removeItem("arc-paid-entry")
     router.push(`/result?${params.toString()}`)
   }, [gameActive, timeLeft, completed, score, correct, mistakes, router])
 
@@ -110,7 +91,6 @@ export default function GamePage() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.25),_transparent_35%),linear-gradient(180deg,#f5f8ff_0%,#ffffff_100%)] text-slate-900">
-      <WalletButton />
       <TimerBar timeLeft={timeLeft} duration={ROUND_SECONDS} />
 
       <div className="mx-auto flex max-w-5xl flex-col items-center justify-center px-4 pb-24 pt-12">

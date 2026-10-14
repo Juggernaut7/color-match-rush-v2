@@ -72,7 +72,11 @@ export function saveResult(result: GameResult): GameResult[] {
     })
     .slice(0, 25)
 
-  window.localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(next))
+  try {
+    window.localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(next))
+  } catch {
+    return next
+  }
   return next
 }
 
@@ -89,6 +93,10 @@ export function getProfileSummary(player?: string) {
   const allResults = getStoredResults()
   const relevant = player ? allResults.filter((result) => result.player === player) : allResults
 
+  return summarizeResults(relevant)
+}
+
+export function summarizeResults(relevant: GameResult[]) {
   const totalGames = relevant.length
   const bestScore = relevant.reduce((best, result) => Math.max(best, result.score), 0)
   const totalPoints = relevant.reduce((sum, result) => sum + result.score, 0)

@@ -1,11 +1,11 @@
 "use client"
 
-import { Suspense, useEffect, useMemo, useState } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import BottomNav from "@/components/BottomNav"
-import WalletButton from "@/components/WalletButton"
 import { getBestScore, getStoredResults } from "@/lib/game-state"
+import { getAnonymousPlayerId, submitScore } from "@/lib/score-api"
 
 export default function ResultPage() {
   return (
@@ -21,13 +21,38 @@ function ResultPageContent() {
   const score = Number(searchParams.get("score") || 0)
   const correct = Number(searchParams.get("correct") || 0)
   const mistakes = Number(searchParams.get("mistakes") || 0)
-  const competition = searchParams.get("competition")
-  const roundId = searchParams.get("roundId")
+  const submissionId = searchParams.get("submissionId")
   const [bestScore, setBestScore] = useState(0)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
+  const [saveError, setSaveError] = useState("")
 
   useEffect(() => {
     setBestScore(getBestScore())
   }, [])
+
+  const saveToCloud = useCallback(async () => {
+    if (!submissionId) return
+    setSaveStatus("saving")
+    setSaveError("")
+    try {
+      const savedBestScore = await submitScore({
+        submissionId,
+        playerId: getAnonymousPlayerId(),
+        score,
+        correct,
+        mistakes,
+      })
+      setBestScore((current) => Math.max(current, savedBestScore))
+      setSaveStatus("saved")
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Could not save this score online.")
+      setSaveStatus("error")
+    }
+  }, [correct, mistakes, score, submissionId])
+
+  useEffect(() => {
+    void saveToCloud()
+  }, [saveToCloud])
 
   const accuracy = useMemo(() => {
     const attempts = correct + mistakes
@@ -39,8 +64,6 @@ function ResultPageContent() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.22),_transparent_35%),linear-gradient(180deg,#f5f8ff_0%,#ffffff_100%)] text-slate-900">
-      <WalletButton />
-
       <div className="mx-auto flex max-w-3xl flex-col items-center justify-center px-4 pb-28 pt-20">
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="mb-8 rounded-full bg-blue-600 p-6 text-5xl shadow-xl shadow-blue-200">
           {score >= 15 ? "🎉" : score >= 8 ? "👏" : "⚡"}
@@ -50,9 +73,18 @@ function ResultPageContent() {
         <p className="mt-3 text-lg text-slate-600">
           {score >= 15 ? "Outstanding reaction speed." : score >= 8 ? "Strong focus." : "Great effort — round one is always the toughest."}
         </p>
-        {competition === "entered" && (
-          <div className="mt-5 w-full max-w-xl rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
-            You entered Arc round #{roundId}. This score is displayed for your game session only; it is not saved on-chain or used as verified evidence for prize selection. The operator selects three entrants after the round ends, and the contract enforces eligibility and the 50% / 30% / 20% payouts.
+        {submissionId && (
+          <div className="mt-5 w-full max-w-xl rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900" aria-live="polite">
+            {saveStatus === "saving" && "Saving this self-reported score to your anonymous online history..."}
+            {saveStatus === "saved" && "Score saved to your anonymous online history. Scores are self-reported and not verified."}
+            {saveStatus === "error" && (
+              <>
+                <p>{saveError} Your local result remains available on this device.</p>
+                <button type="button" onClick={() => void saveToCloud()} className="mt-2 font-bold underline">
+                  Retry online save
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -73,7 +105,7 @@ function ResultPageContent() {
 
         <div className="mt-8 w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between text-sm text-slate-600">
-            <span>Best score</span>
+            <span>Device best</span>
             <span className="text-xl font-black text-slate-900">{bestScore}</span>
           </div>
           <div className="mt-3 flex items-center justify-between text-sm text-slate-600">
