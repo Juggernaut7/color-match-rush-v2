@@ -1,6 +1,6 @@
 # Legacy contract deployment record
 
-The treasury contract was previously deployed to Arc Mainnet. The current website is a free-play MVP and does not use its payment or payout features. Do not deploy another treasury or create/manage rounds for the current app.
+The treasury contract was previously deployed to Arc Mainnet. The website keeps free practice independent and exposes the existing round state and conditional entry/refund actions in an optional wallet panel. Do not deploy another treasury or create/manage rounds without an explicit operator decision.
 
 Verified historical deployment:
 
@@ -10,4 +10,4 @@ Verified historical deployment:
 - Deployment transaction: `0xf2d1bce8ff15cdc30a5ec85a3957c21463ad935557f8f20a87a1a6e8f4ae9638`
 - Initial round transaction: `0x7da6e5dce15af06b0d91795988381c0882f969f7e2ecef0918182b56bfa49d03`
 
-The on-chain contract still contains a payable entry method, which cannot be disabled by removing frontend code. Do not send funds to it. Its deployer key is not needed by the web app. Contract source, historical behavior, and test instructions are in [README.md](./README.md).
+The on-chain contract still contains a payable entry method, which cannot be disabled by removing frontend code. The website's entry action is only shown while the contract reports an open round and includes a warning that scores are not recorded and winners are selected by the operator. Its deployer key is not needed by the web app. Contract source, historical behavior, and test instructions are in [README.md](./README.md).

@@ -41,10 +41,13 @@ export default function HomePage() {
               <Link href="/leaderboard" className="inline-flex min-h-12 items-center justify-center rounded-2xl px-5 py-3 font-bold text-slate-700 transition hover:bg-white">
                 🏆 Leaderboard
               </Link>
+              <Link href="/play" className="inline-flex min-h-12 items-center justify-center rounded-2xl px-5 py-3 font-bold text-slate-700 transition hover:bg-white">
+                Optional Arc round
+              </Link>
             </div>
 
             <p className="mt-6 text-sm font-medium text-slate-500">
-              30 seconds · 8 colors · no wallet, signup, or payment
+              Free 30-second practice · wallet only for optional Arc round features
             </p>
           </div>
 

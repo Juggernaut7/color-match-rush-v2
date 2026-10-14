@@ -1,6 +1,6 @@
 # Color Match Rush
 
-Think fast. Match the word. **Color Match Rush** is a free, mobile-first color-word reaction game: read the color name, ignore its ink, and pick the matching answer before the 30-second clock runs out. No wallet, account, payment, or backend connection is needed to play.
+Think fast. Match the word. **Color Match Rush** is a free, mobile-first color-word reaction game: read the color name, ignore its ink, and pick the matching answer before the 30-second clock runs out. Free practice and local personal-best tracking need no wallet, account, or network connection.
 
 - **Play:** open the app, tap **Play Free**, and answer using one of eight large color buttons.
 - **Scoring:** correct answers add one point; wrong answers subtract one, down to zero.
@@ -10,7 +10,7 @@ Think fast. Match the word. **Color Match Rush** is a free, mobile-first color-w
 
 No live production app URL has been verified yet.
 
-The existing Arc Mainnet treasury is a separate legacy deployment. This game does not connect wallets, accept entry payments, write scores on-chain, or distribute prizes. Read-only Arc checks are available through the server API for diagnostic use; they are not part of the play flow.
+The app also has an optional Arc Mainnet panel for direct treasury reads and wallet-approved entry/refund actions when the on-chain round permits them. It never gates free practice. The existing contract does not accept gameplay scores, and its operator—not a trustless score verifier—selects winners.
 
 ## Run locally
 
@@ -26,14 +26,15 @@ pnpm --filter web dev
 
 Open http://localhost:3000 and tap **Play Free**. The complete game loop and device history work without environment variables, a wallet, or network access.
 
-Configure these variables in `apps/web/.env.local` for local backend and Arc status features, and in the Vercel project's **server-side Production Environment Variables** before deploying:
+Configure these variables in `apps/web/.env.local` for local features and in the Vercel project before deploying. Add the two Arc address variables as plain environment variables (the address is public), and add `MONGODB_URI` only to server-side Production Environment Variables:
 
 ```dotenv
 MONGODB_URI=mongodb+srv://<db-user>:<db-password>@<cluster-host>/<database>?retryWrites=true&w=majority
 ARC_TREASURY_ADDRESS=0xCde9Ada39F44a5d1C929D7f51Bfd7205B6aD6834
+NEXT_PUBLIC_ARC_TREASURY_ADDRESS=0xCde9Ada39F44a5d1C929D7f51Bfd7205B6aD6834
 ```
 
-`MONGODB_URI` is secret: never use a `NEXT_PUBLIC_` prefix, add it to client code, or commit it. It is optional for local play; score submissions and the shared leaderboard show an error and fall back to local records if the database is missing or unavailable. `ARC_TREASURY_ADDRESS` is the public contract address but is read only by the server-side Arc status route. Do not put a deployer private key in the web project's environment.
+`MONGODB_URI` is secret: never use a `NEXT_PUBLIC_` prefix, add it to client code, or commit it. It is optional for local play; score submissions and the shared leaderboard show an error and fall back to local records if the database is missing or unavailable. `ARC_TREASURY_ADDRESS` is read only by the server-side Arc status route; `NEXT_PUBLIC_ARC_TREASURY_ADDRESS` is public and used by the browser to read the contract and create wallet transactions. The browser rejects a configured treasury address that differs from the verified deployment, preventing stale values from being silently used. Never put a deployer private key in the web project's environment.
 
 ## Persistence and score trust
 
@@ -46,9 +47,11 @@ ARC_TREASURY_ADDRESS=0xCde9Ada39F44a5d1C929D7f51Bfd7205B6aD6834
 
 ## Arc Mainnet integration
 
-The status panel makes read-only requests through a same-origin server route to the official Arc Mainnet RPC (`https://rpc.mainnet.arc.io`). It reports success only after RPC confirms chain ID `5042` and non-empty bytecode at the configured address. It does not call the legacy paid-entry getter or prove that the bytecode matches the repository source. Transient RPC failures show an error and a retry action; they do not disable free gameplay.
+The Arc panel calls the official Arc Mainnet RPC (`https://rpc.mainnet.arc.io`) directly from the browser using the deployed treasury ABI. It checks chain ID `5042`, deployed bytecode, and current contract round state; transient failures are shown with a retry action and do not disable free gameplay. Browser wallet support uses an injected EVM wallet (such as MetaMask or Rabby); connecting is optional.
 
-The verified legacy treasury is [`0xCde9Ada39F44a5d1C929D7f51Bfd7205B6aD6834`](https://explorer.arc.io/address/0xCde9Ada39F44a5d1C929D7f51Bfd7205B6aD6834). It was originally deployed with a payable entry method and an open round. This version of the website removes all wallet and payment controls and never calls those methods. **The legacy contract itself remains on-chain and may still accept direct contract calls while its round is open; do not send funds to it.** Arc uses native USDC as gas/value (18 decimals); this app does not use the separate 6-decimal ERC-20 interface.
+The verified treasury is [`0xCde9Ada39F44a5d1C929D7f51Bfd7205B6aD6834`](https://explorer.arc.io/address/0xCde9Ada39F44a5d1C929D7f51Bfd7205B6aD6834). Its original entry fee is `0.5` native USDC (18 decimals); this is both the `msg.value` required to enter and Arc's gas asset, not an ERC-20 approval or transfer. When a round is open, users can review the fee and contract's trust model before explicitly requesting a wallet transaction. The wallet must be switched to Arc Mainnet. A confirmed entry records only the wallet as a participant, not the local game score.
+
+The operator creates/cancels rounds and selects the three winners after a round ends. The contract enforces that each selected winner is a distinct participant and pays 50% / 30% / 20% of the pool. It does not verify gameplay or select winners by score. Cancelled participants may claim their own refunds. The current deployment's first round has passed its entry deadline; the website must display live round state rather than imply that entries are currently available.
 
 Network details: [Circle Arc connection guide](https://docs.arc.io/arc/references/connect-to-arc.md).
 

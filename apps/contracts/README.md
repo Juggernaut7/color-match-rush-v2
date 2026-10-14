@@ -1,6 +1,6 @@
 # Legacy Color Match Rush treasury contract
 
-This package contains the source and Hardhat tests for the previously deployed paid-entry treasury. It is **not used by the current free-play website**. The website has no wallet or payment controls and does not call the contract's payable methods.
+This package contains the source and Hardhat tests for the previously deployed paid-entry treasury. Free practice remains independent; the optional Arc panel reads the contract directly and can request wallet-approved entry or refund transactions when on-chain conditions permit.
 
 ## Existing Arc Mainnet deployment
 
@@ -12,7 +12,7 @@ This package contains the source and Hardhat tests for the previously deployed p
 
 The deployment was originally configured with a 0.5 native-USDC fee. Arc native USDC is the gas/value asset with 18 decimals. This contract accepts entry payment through payable calls and `msg.value`; it does not use the separate ERC-20 USDC transfer interface.
 
-**The contract remains deployed and its payable entry function cannot be disabled by this frontend.** It may still accept direct entries while its round is open. The current application does not expose or use these payment functions; do not send funds to the legacy contract.
+**The contract remains deployed and its payable entry function cannot be disabled by this frontend.** The optional app panel exposes entry only when `isRoundOpen` reports true, and only after showing the fee and operator-selection limitation. Never enter unless you understand that the local gameplay score is not recorded or used to select winners.
 
 ## Historical contract behavior
 
@@ -22,7 +22,7 @@ The deployment was originally configured with a 0.5 native-USDC fee. Arc native 
 - Payout arithmetic is enforced on-chain as 50%, 30%, and the remainder; entrant scores are not verified by the contract.
 - An expired round with fewer than three entrants may be cancelled, after which entrants can claim refunds.
 
-The operator-selected winners model is not trustless score verification. These features are retained only to describe and test the already-deployed contract; they are not part of the free-play MVP.
+The operator-selected winners model is not trustless score verification. The contract does not store gameplay answers or scores. Free practice and local personal-best history do not depend on the contract.
 
 ## Test the legacy contract
 

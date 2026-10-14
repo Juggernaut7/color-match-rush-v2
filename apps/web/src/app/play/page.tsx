@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import ArcRoundPanel from "@/components/ArcRoundPanel"
 
 export default function PlayPage() {
   const router = useRouter()
@@ -27,6 +28,7 @@ export default function PlayPage() {
             🏆 Scores
           </Link>
         </div>
+        <ArcRoundPanel />
       </div>
     </main>
   )
